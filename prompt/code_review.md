@@ -189,7 +189,8 @@
 - **line**: 问题所在行号（如果能确定）
 - **description**: 问题描述
 - **suggestion**: 修改建议
-- **evidence**: 证据（相关代码片段、调用链路或逻辑说明）
+
+> 注意：issues 已精确到具体文件和行号，无需额外提供证据。证据仅在 mrDescription 的风险评估部分提供。
 
 ## reviewDecision 字段说明
 

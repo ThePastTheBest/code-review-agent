@@ -62,6 +62,4 @@ class ReviewService:
 
 {issue.description}
 
-**建议**: {issue.suggestion}
-
-**证据**: {issue.evidence}"""
+**建议**: {issue.suggestion}"""

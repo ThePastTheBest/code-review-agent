@@ -33,7 +33,6 @@ class Issue(BaseModel):
     line: Optional[int] = None
     description: str
     suggestion: str
-    evidence: str
 
 
 class AgentReviewResult(BaseModel):

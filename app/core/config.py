@@ -69,9 +69,11 @@ def load_settings() -> Settings:
         base_url=os.getenv("CLAUDE_BASE_URL", "https://api.anthropic.com"),
     )
 
-    # 将 CLAUDE_API_KEY 映射为 ANTHROPIC_API_KEY 供 claude-agent-sdk 使用
-    if claude_env.api_key and not os.getenv("ANTHROPIC_API_KEY"):
+    # 将 CLAUDE_API_KEY / CLAUDE_BASE_URL 映射为 ANTHROPIC_* 供 claude-agent-sdk 使用
+    if claude_env.api_key:
         os.environ["ANTHROPIC_API_KEY"] = claude_env.api_key
+    if claude_env.base_url:
+        os.environ["ANTHROPIC_BASE_URL"] = claude_env.base_url
 
     return Settings(
         server=ServerConfig(**yaml_config.get("server", {})),

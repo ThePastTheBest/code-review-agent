@@ -35,13 +35,9 @@
           "suggestion": {
             "type": "string",
             "description": "修改建议"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "证据（相关代码片段、调用链路或逻辑说明）"
           }
         },
-        "required": ["severity", "category", "file", "description", "suggestion", "evidence"]
+        "required": ["severity", "category", "file", "description", "suggestion"]
       }
     },
 
