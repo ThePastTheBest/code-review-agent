@@ -63,51 +63,75 @@ step "检测运行环境..."
 
 # ---------- Python 检测 ----------
 check_python() {
+    # 按优先级扫描所有可能的 Python 命令
     local py_cmd=""
-    for cmd in python3 python; do
+    for cmd in python3.13 python3.12 python3.11 python3.10 python3 python; do
         if command -v "$cmd" &>/dev/null; then
-            py_cmd="$cmd"
-            break
+            local ver
+            ver="$($cmd --version 2>&1 | awk '{print $2}')"
+            if version_ge "$ver" "3.10.0"; then
+                py_cmd="$cmd"
+                info "Python $ver ($cmd) ✓"
+                PYTHON_CMD="$cmd"
+                return
+            fi
         fi
     done
 
     if [[ -z "$py_cmd" ]]; then
-        error "未检测到 Python"
-        install_python
-        return
-    fi
-
-    local py_version
-    py_version="$($py_cmd --version 2>&1 | awk '{print $2}')"
-    if version_ge "$py_version" "3.10.0"; then
-        info "Python $py_version ✓"
-        PYTHON_CMD="$py_cmd"
-    else
-        warn "Python 版本 $py_version 低于最低要求 3.10"
+        local sys_ver=""
+        if command -v python3 &>/dev/null; then
+            sys_ver="$(python3 --version 2>&1 | awk '{print $2}')"
+            warn "当前 Python 版本 $sys_ver 低于最低要求 3.10"
+        else
+            error "未检测到 Python"
+        fi
         install_python
     fi
 }
 
 install_python() {
+    echo ""
     if [[ "$OS_TYPE" == "macos" ]]; then
         echo "  推荐安装方式: brew install python@3.11"
     elif [[ "$OS_TYPE" == "linux" ]]; then
-        echo "  推荐安装方式: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.11 python3.11-venv"
+        echo "  推荐安装方式:"
+        echo "    sudo add-apt-repository ppa:deadsnakes/ppa"
+        echo "    sudo apt update"
+        echo "    sudo apt install python3.11 python3.11-venv"
     fi
+    echo ""
     if confirm "是否自动安装 Python?"; then
         if [[ "$OS_TYPE" == "macos" ]]; then
             brew install python@3.11
+            PYTHON_CMD="python3"
         else
-            # Ubuntu/Debian 默认仓库可能没有 python3.11，需要添加 deadsnakes PPA
-            if ! apt-cache show python3.11 &>/dev/null; then
-                info "默认仓库未找到 python3.11，添加 deadsnakes PPA..."
-                sudo apt update
-                sudo apt install -y software-properties-common
-                sudo add-apt-repository -y ppa:deadsnakes/ppa
+            # Ubuntu/Debian: 添加 deadsnakes PPA 获取新版 Python
+            info "添加 deadsnakes PPA..."
+            sudo apt-get install -y software-properties-common 2>/dev/null
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get update
+
+            # 按优先级尝试安装 3.11 → 3.12 → 3.10
+            local installed=false
+            for pyver in python3.11 python3.12 python3.10; do
+                info "尝试安装 $pyver ..."
+                if sudo apt-get install -y "$pyver" "${pyver}-venv" 2>/dev/null; then
+                    PYTHON_CMD="$pyver"
+                    installed=true
+                    info "$pyver 安装成功 ✓"
+                    break
+                else
+                    warn "$pyver 安装失败，尝试下一个版本..."
+                fi
+            done
+
+            if ! $installed; then
+                error "自动安装失败，请手动安装 Python 3.10+"
+                error "可尝试: curl https://pyenv.run | bash && pyenv install 3.11"
+                exit 1
             fi
-            sudo apt update && sudo apt install -y python3.11 python3.11-venv
         fi
-        PYTHON_CMD="python3.11"
     else
         error "请手动安装 Python 3.10+ 后重试"
         exit 1
