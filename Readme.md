@@ -9,6 +9,7 @@
 - **GitLab 深度集成** — 自动创建/更新 MR，写入审查摘要，对问题代码添加行级评论
 - **多维度分析** — 覆盖安全性、Bug、性能、稳定性、可维护性等审查维度
 - **分级风险评估** — 按 critical / high / medium / low 四级划分问题严重程度
+- **飞书机器人集成** — 通过飞书群聊 @机器人 或私聊直接触发代码审查，实时返回结果
 - **全配置化** — GitLab 地址、API Key、模型参数、Prompt 模板均可配置
 
 ## 系统架构
@@ -91,6 +92,8 @@ cp .env.example .env
 | `GITLAB_TOKEN` | GitLab Private Token | GitLab → Settings → Access Tokens（需 `api` 权限） |
 | `CLAUDE_API_KEY` | Anthropic API Key | 从 [console.anthropic.com](https://console.anthropic.com) 获取 |
 | `CLAUDE_BASE_URL` | API 地址（可选） | 默认 `https://api.anthropic.com` |
+| `FEISHU_APP_ID` | 飞书应用 App ID | 飞书开放平台 → 应用 → 凭证与基础信息 |
+| `FEISHU_APP_SECRET` | 飞书应用 App Secret | 同上 |
 
 > `CLAUDE_API_KEY` 启动时会自动映射为 `ANTHROPIC_API_KEY` 供 SDK 使用。
 
@@ -138,6 +141,78 @@ Agent 会自主完成以下多轮推理：
 - **行级评论** — 针对具体问题代码行的评论，包含严重程度、分类、描述和修改建议
 - **审查决定** — `approve` / `approve-with-comments` / `request-changes`
 
+## 飞书机器人配置
+
+除了 API 接口，本项目还支持通过飞书机器人触发代码审查。以下是完整的配置流程。
+
+### 1. 创建飞书自建应用
+
+1. 访问 [飞书开放平台](https://open.feishu.cn/)，登录后进入**开发者后台**
+2. 点击「创建企业自建应用」
+3. 填写应用名称（如 "Code Review Bot"）和描述
+
+### 2. 获取凭证
+
+进入应用 → **凭证与基础信息**，复制以下信息并填入 `.env` 文件：
+
+```bash
+FEISHU_APP_ID=cli_xxxxxxxxxxxx
+FEISHU_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### 3. 开启机器人能力
+
+进入应用 → **应用功能 → 机器人**，开启机器人功能。
+
+### 4. 配置权限
+
+进入应用 → **权限管理**，搜索并开通以下权限：
+
+| 权限 | 权限名称 | 用途 |
+|------|---------|------|
+| `im:message.group_at_msg:readonly` | 接收群聊中@机器人消息事件 | 接收群聊中 @机器人 的消息 |
+| `im:message.p2p_msg:readonly` | 获取用户发给机器人的单聊消息 | 接收私聊消息 |
+| `im:message:send_as_bot` | 以应用的身份发消息 | 机器人发送/回复消息 |
+
+### 5. 配置事件订阅
+
+进入应用 → **事件与回调 → 事件配置**：
+
+1. 添加事件：**接收消息 v2.0**（`im.message.receive_v1`）
+2. 本项目使用 **WebSocket 长连接模式**，无需配置请求地址（Webhook URL）
+
+### 6. 发布应用
+
+1. 进入应用 → **应用发布 → 版本管理与发布**
+2. 创建版本并提交发布（需管理员审批）
+3. 设置可用范围（哪些人/部门可以使用该机器人）
+
+### 7. 使用方式
+
+| 场景 | 操作 |
+|------|------|
+| **私聊** | 直接给机器人发送三行文本 |
+| **群聊** | 将机器人拉入群聊，@机器人 后跟三行文本 |
+
+消息格式：
+
+```
+group/repo
+feature-branch
+main
+```
+
+机器人会回复确认信息，审查完成后返回审查决定和 MR 链接。
+
+### 8. 禁用飞书机器人（可选）
+
+如不需要飞书集成，在 `config/config.yaml` 中设置：
+
+```yaml
+feishu:
+  enabled: false
+```
+
 ## 可选配置
 
 业务配置位于 `config/config.yaml`：
@@ -174,6 +249,7 @@ review:
 pay-agent-codereview/
 ├── app/                          # 应用主目录
 │   ├── main.py                   # FastAPI 应用入口
+│   ├── feishu_bot.py             # 飞书机器人事件处理
 │   ├── api/                      # 接口层
 │   │   ├── router.py             # 路由定义（/review, /health）
 │   │   ├── schemas.py            # 请求/响应模型
@@ -181,6 +257,7 @@ pay-agent-codereview/
 │   ├── service/                  # 服务层
 │   │   ├── gitlab_service.py     # GitLab API 交互
 │   │   ├── review_service.py     # 审查流程协调
+│   │   ├── feishu_service.py     # 飞书消息发送与解析
 │   │   └── prompt_service.py     # Prompt 模板管理
 │   ├── agent/                    # Agent 层
 │   │   ├── code_review_agent.py  # Claude Agent 主逻辑
@@ -210,4 +287,5 @@ pay-agent-codereview/
 | 数据校验 | Pydantic v2 |
 | GitLab 集成 | python-gitlab |
 | AI Agent | claude-agent-sdk |
+| 飞书集成 | lark-oapi（WebSocket 长连接） |
 | 配置管理 | PyYAML + python-dotenv |
