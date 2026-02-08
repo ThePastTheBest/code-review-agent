@@ -1,0 +1,86 @@
+import os
+from pathlib import Path
+from typing import Optional
+
+import yaml
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+class ServerConfig(BaseModel):
+    host: str = "0.0.0.0"
+    port: int = 8000
+
+
+class AgentConfig(BaseModel):
+    model: str = "claude-sonnet-4-20250514"
+    max_tokens: int = 4096
+    max_turns: int = 10
+
+
+class GitLabEnvConfig(BaseModel):
+    url: str
+    token: str
+
+
+class GitLabConfig(BaseModel):
+    clone_depth: int = 1
+    temp_dir: str = "/tmp/code-review"
+
+
+class ReviewConfig(BaseModel):
+    prompt_template: str = "prompt/code_review.md"
+
+
+class ClaudeEnvConfig(BaseModel):
+    api_key: str
+    base_url: Optional[str] = "https://api.anthropic.com"
+
+
+class Settings(BaseModel):
+    server: ServerConfig = ServerConfig()
+    agent: AgentConfig = AgentConfig()
+    gitlab: GitLabConfig = GitLabConfig()
+    gitlab_env: GitLabEnvConfig
+    claude_env: ClaudeEnvConfig
+    review: ReviewConfig = ReviewConfig()
+
+
+def load_settings() -> Settings:
+    """加载配置"""
+    config_path = BASE_DIR / "config" / "config.yaml"
+
+    yaml_config = {}
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            yaml_config = yaml.safe_load(f) or {}
+
+    gitlab_env = GitLabEnvConfig(
+        url=os.getenv("GITLAB_URL", ""),
+        token=os.getenv("GITLAB_TOKEN", ""),
+    )
+
+    claude_env = ClaudeEnvConfig(
+        api_key=os.getenv("CLAUDE_API_KEY", ""),
+        base_url=os.getenv("CLAUDE_BASE_URL", "https://api.anthropic.com"),
+    )
+
+    # 将 CLAUDE_API_KEY 映射为 ANTHROPIC_API_KEY 供 claude-agent-sdk 使用
+    if claude_env.api_key and not os.getenv("ANTHROPIC_API_KEY"):
+        os.environ["ANTHROPIC_API_KEY"] = claude_env.api_key
+
+    return Settings(
+        server=ServerConfig(**yaml_config.get("server", {})),
+        agent=AgentConfig(**yaml_config.get("agent", {})),
+        gitlab=GitLabConfig(**yaml_config.get("gitlab", {})),
+        gitlab_env=gitlab_env,
+        claude_env=claude_env,
+        review=ReviewConfig(**yaml_config.get("review", {})),
+    )
+
+
+settings = load_settings()

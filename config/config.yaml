@@ -1,0 +1,19 @@
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+# Claude Agent 配置
+agent:
+  model: "claude-sonnet-4-20250514"
+  max_tokens: 20000
+  max_turns: 10
+
+# GitLab 配置
+gitlab:
+  clone_depth: 1
+  temp_dir: "/tmp/code-review"
+
+# 审查配置
+review:
+  prompt_template: "prompt/code_review.md"
