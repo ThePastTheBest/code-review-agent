@@ -6,17 +6,16 @@ import re
 import ssl
 import threading
 
-if os.environ.get("SKIP_SSL_VERIFY", "").lower() in ("1", "true"):
-    _orig_create_default_context = ssl.create_default_context
+_orig_create_default_context = ssl.create_default_context
 
-    def _create_unverified_context(*args, **kwargs):
-        ctx = _orig_create_default_context(*args, **kwargs)
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
+def _create_unverified_context(*args, **kwargs):
+    ctx = _orig_create_default_context(*args, **kwargs)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
-    ssl.create_default_context = _create_unverified_context
-    ssl._create_default_https_context = ssl._create_unverified_context
+ssl.create_default_context = _create_unverified_context
+ssl._create_default_https_context = ssl._create_unverified_context
 
 import lark_oapi as lark
 from lark_oapi.api.im.v1 import P2ImMessageReceiveV1

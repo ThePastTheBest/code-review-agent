@@ -3,9 +3,10 @@ set -euo pipefail
 
 # ============================================================
 # pay-agent-codereview 一键启动脚本
-# 用法: ./start.sh [--check] [-y]
-#   --check  仅检测环境，不启动服务
-#   -y       跳过所有确认提示，自动安装
+# 用法: ./start.sh [--check] [-y] [-d|--daemon]
+#   --check      仅检测环境，不启动服务
+#   -y           跳过所有确认提示，自动安装
+#   -d|--daemon  后台运行（日志输出到 logs/ 目录）
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,13 +15,18 @@ cd "$SCRIPT_DIR"
 # ---------- 参数解析 ----------
 CHECK_ONLY=false
 AUTO_YES=false
+DAEMON=false
 for arg in "$@"; do
     case "$arg" in
-        --check) CHECK_ONLY=true ;;
-        -y)      AUTO_YES=true ;;
-        *)       echo "未知参数: $arg"; exit 1 ;;
+        --check)       CHECK_ONLY=true ;;
+        -y)            AUTO_YES=true ;;
+        -d|--daemon)   DAEMON=true ;;
+        *)             echo "未知参数: $arg"; exit 1 ;;
     esac
 done
+
+LOG_DIR="$SCRIPT_DIR/logs"
+PID_FILE="$SCRIPT_DIR/.pid"
 
 # ---------- 彩色日志 ----------
 RED='\033[0;31m'
@@ -285,10 +291,35 @@ if ! $ENV_OK; then
     fi
 fi
 
+if [[ -f "$PID_FILE" ]]; then
+    OLD_PID=$(cat "$PID_FILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        error "服务已在运行中 (PID: $OLD_PID)"
+        error "请先执行 ./stop.sh 停止服务"
+        exit 1
+    fi
+    rm -f "$PID_FILE"
+fi
+
+mkdir -p "$LOG_DIR"
+
 step "启动 Code Review Agent 服务..."
 echo ""
 info "服务地址: http://localhost:8000"
 info "API 文档: http://localhost:8000/docs"
-echo ""
 
-python -m app.main
+if $DAEMON; then
+    LOG_FILE="$LOG_DIR/app.log"
+    nohup python -m app.main >> "$LOG_FILE" 2>&1 &
+    APP_PID=$!
+    echo "$APP_PID" > "$PID_FILE"
+    echo ""
+    info "服务已在后台启动 (PID: $APP_PID)"
+    info "日志文件: $LOG_FILE"
+    info "停止服务: ./stop.sh"
+else
+    LOG_FILE="$LOG_DIR/app.log"
+    info "日志文件: $LOG_FILE"
+    echo ""
+    python -m app.main 2>&1 | tee -a "$LOG_FILE"
+fi
