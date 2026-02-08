@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.router import router
 from app.core.config import settings
+from app.feishu_bot import start_feishu_bot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,6 +19,11 @@ app = FastAPI(
 )
 
 app.include_router(router, prefix="/api/v1")
+
+
+@app.on_event("startup")
+async def startup_event():
+    start_feishu_bot()
 
 
 @app.get("/")

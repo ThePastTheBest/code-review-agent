@@ -17,3 +17,7 @@ gitlab:
 # 审查配置
 review:
   prompt_template: "prompt/code_review.md"
+
+# 飞书机器人配置
+feishu:
+  enabled: true

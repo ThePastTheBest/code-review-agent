@@ -291,4 +291,4 @@ info "服务地址: http://localhost:8000"
 info "API 文档: http://localhost:8000/docs"
 echo ""
 
-python app/main.py
+python -m app.main

@@ -41,6 +41,15 @@ class ClaudeEnvConfig(BaseModel):
     base_url: Optional[str] = "https://api.anthropic.com"
 
 
+class FeishuEnvConfig(BaseModel):
+    app_id: str
+    app_secret: str
+
+
+class FeishuConfig(BaseModel):
+    enabled: bool = True
+
+
 class Settings(BaseModel):
     server: ServerConfig = ServerConfig()
     agent: AgentConfig = AgentConfig()
@@ -48,6 +57,8 @@ class Settings(BaseModel):
     gitlab_env: GitLabEnvConfig
     claude_env: ClaudeEnvConfig
     review: ReviewConfig = ReviewConfig()
+    feishu: FeishuConfig = FeishuConfig()
+    feishu_env: FeishuEnvConfig
 
 
 def load_settings() -> Settings:
@@ -75,6 +86,11 @@ def load_settings() -> Settings:
     if claude_env.base_url:
         os.environ["ANTHROPIC_BASE_URL"] = claude_env.base_url
 
+    feishu_env = FeishuEnvConfig(
+        app_id=os.getenv("FEISHU_APP_ID", ""),
+        app_secret=os.getenv("FEISHU_APP_SECRET", ""),
+    )
+
     return Settings(
         server=ServerConfig(**yaml_config.get("server", {})),
         agent=AgentConfig(**yaml_config.get("agent", {})),
@@ -82,6 +98,8 @@ def load_settings() -> Settings:
         gitlab_env=gitlab_env,
         claude_env=claude_env,
         review=ReviewConfig(**yaml_config.get("review", {})),
+        feishu=FeishuConfig(**yaml_config.get("feishu", {})),
+        feishu_env=feishu_env,
     )
 
 
