@@ -86,14 +86,14 @@ cp .env.example .env
 
 编辑 `.env`，填入真实值：
 
-| 变量 | 说明 | 获取方式 |
-|------|------|----------|
-| `GITLAB_URL` | GitLab 实例地址 | 如 `https://gitlab.company.com` |
-| `GITLAB_TOKEN` | GitLab Private Token | GitLab → Settings → Access Tokens（需 `api` 权限） |
-| `CLAUDE_API_KEY` | Anthropic API Key | 从 [console.anthropic.com](https://console.anthropic.com) 获取 |
-| `CLAUDE_BASE_URL` | API 地址（可选） | 默认 `https://api.anthropic.com` |
-| `FEISHU_APP_ID` | 飞书应用 App ID | 飞书开放平台 → 应用 → 凭证与基础信息 |
-| `FEISHU_APP_SECRET` | 飞书应用 App Secret | 同上 |
+| 变量 | 说明 | 获取方式                                                    |
+|------|------|---------------------------------------------------------|
+| `GITLAB_URL` | GitLab 实例地址 | 如 `https://gitlab.company.com`                          |
+| `GITLAB_TOKEN` | GitLab Private Token | GitLab → Settings → Access Tokens（需 `api` 权限）           |
+| `CLAUDE_API_KEY` | Anthropic API Key | 可使用国内中转站提供的api-key，如 https://aicd.top                   |
+| `CLAUDE_BASE_URL` | API 地址（可选） | 根据api-key 供应商设置对应base-url，如 `https://api.aicd.top/api/claudecode` |
+| `FEISHU_APP_ID` | 飞书应用 App ID | 飞书开放平台 → 应用 → 凭证与基础信息                                   |
+| `FEISHU_APP_SECRET` | 飞书应用 App Secret | 同上                                                      |
 
 > `CLAUDE_API_KEY` 启动时会自动映射为 `ANTHROPIC_API_KEY` 供 SDK 使用。
 
