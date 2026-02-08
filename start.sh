@@ -92,15 +92,22 @@ install_python() {
     if [[ "$OS_TYPE" == "macos" ]]; then
         echo "  推荐安装方式: brew install python@3.11"
     elif [[ "$OS_TYPE" == "linux" ]]; then
-        echo "  推荐安装方式: sudo apt install python3.11 python3.11-venv"
+        echo "  推荐安装方式: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.11 python3.11-venv"
     fi
     if confirm "是否自动安装 Python?"; then
         if [[ "$OS_TYPE" == "macos" ]]; then
             brew install python@3.11
         else
+            # Ubuntu/Debian 默认仓库可能没有 python3.11，需要添加 deadsnakes PPA
+            if ! apt-cache show python3.11 &>/dev/null; then
+                info "默认仓库未找到 python3.11，添加 deadsnakes PPA..."
+                sudo apt update
+                sudo apt install -y software-properties-common
+                sudo add-apt-repository -y ppa:deadsnakes/ppa
+            fi
             sudo apt update && sudo apt install -y python3.11 python3.11-venv
         fi
-        PYTHON_CMD="python3"
+        PYTHON_CMD="python3.11"
     else
         error "请手动安装 Python 3.10+ 后重试"
         exit 1
